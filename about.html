@@ -1,0 +1,326 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>AIALAB : Graphic Design, Development and Digital Marketing Agency</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta charset="utf-8">
+    	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    	<meta name="description=" content="Inceptum Technologies create solutions for all your web needs. Our best-in-line services include Development, graphic design & app development.">
+	    <meta name="robots" content="">
+    	<meta name="format-detection" content="telephone=no">
+    	<link rel="shortcut icon" href="img/logo2.png" type="image/x-icon"/>
+
+		<!--[if lte IE 8]><script src="assets/js/ie/html5shiv.js"></script><![endif]-->
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<link rel="stylesheet" href="assets/css/extra-style.css" />
+		<link rel="stylesheet" href="style.css" />
+		<!--[if lte IE 9]><link rel="stylesheet" href="assets/css/ie9.css" /><![endif]-->
+		<!--[if lte IE 8]><link rel="stylesheet" href="assets/css/ie8.css" /><![endif]-->
+		<link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon"/>
+	</head>
+	<body style="overflow-x:hidden;">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/88/three.min.js"></script>
+    <script id="vertexShader" type="x-shader/x-vertex">
+      void main() {
+          gl_Position = vec4( position, 1.0 );
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      uniform vec2 u_resolution;
+      uniform vec2 u_mouse;
+      uniform float u_time;
+      uniform sampler2D u_noise;
+
+      #define PI 3.141592653589793
+      #define TAU 6.
+
+      const float multiplier = 15.5;
+
+      const float zoomSpeed = 10.;
+      const int layers = 10;
+
+      const int octaves = 5;
+
+      vec2 hash2(vec2 p)
+      {
+        vec2 o = texture2D( u_noise, (p+0.5)/256.0, -100.0 ).xy;
+        return o;
+      }
+
+      mat2 rotate2d(float _angle){
+          return mat2(cos(_angle),sin(_angle),
+                      -sin(_angle),cos(_angle));
+      }
+
+      vec3 hsb2rgb( in vec3 c ){
+        vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),
+                                 6.0)-3.0)-1.0,
+                         0.0,
+                         1.0 );
+        rgb = rgb*rgb*(3.0-2.0*rgb);
+        return c.z * mix( vec3(1.0), rgb, c.y);
+      }
+
+      float hash(vec2 p)
+      {
+        float o = texture2D( u_noise, (p+0.5)/256.0, -100.0 ).x;
+        return o;
+      }
+      float noise(vec2 uv) {
+        vec2 id = floor(uv);
+        vec2 subuv = fract(uv);
+        vec2 u = subuv * subuv * (3. - 2. * subuv);
+        float a = hash(id);
+        float b = hash(id + vec2(1., 0.));
+        float c = hash(id + vec2(0., 1.));
+        float d = hash(id + vec2(1., 1.));
+        return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+      }
+      float fbm(in vec2 uv) {
+        float s = .0;
+        float m = .0;
+        float a = .5;
+        for(int i = 0; i < octaves; i++) {
+          s += a * noise(uv);
+          m += a;
+          a *= .5;
+          uv *= 2.;
+        }
+        return s / m;
+      }
+
+      vec3 domain(vec2 z){
+        return vec3(hsb2rgb(vec3(atan(z.y,z.x)/TAU,1.,1.)));
+      }
+      vec3 colour(vec2 z) {
+          return domain(z);
+      }
+
+      // The render function is where we render the pattern to be added to the layer
+      vec3 render(vec2 uv, float scale, vec3 colour) {
+        vec2 id = floor(uv);
+        vec2 subuv = fract(uv);
+        vec2 rand = hash2(id);
+        float bokeh = abs(scale) * 1.;
+
+        float particle = 0.;
+
+        if(length(rand) > 1.3) {
+          vec2 pos = subuv-.5;
+          float field = length(pos);
+          particle = smoothstep(.3, 0., field);
+          particle += smoothstep(.4 * bokeh, 0.34 * bokeh, field);
+        }
+        return vec3(particle*2.);
+      }
+
+      vec3 renderLayer(int layer, int layers, vec2 uv, inout float opacity, vec3 colour, float n) {
+        vec2 _uv = uv;
+        // Scale
+        // Generating a scale value between zero and 1 based on a mod of u_time
+        // A frequency of 10 dixided by the layer index (10 / layers * layer)
+        float scale = mod((u_time + zoomSpeed / float(layers) * float(layer)) / zoomSpeed, -1.);
+        uv *= 20.; // The initial scale. Increasing this makes the cells smaller and the "speed" apepar faster
+        uv *= scale*scale; // then modifying the overall scale by the generated amount
+        // uv *= 1. + ( ( n*.5 ) * ( length(_uv) ) );
+        // uv += .5*float(layer);
+        uv = rotate2d(u_time / 10.) * uv; // rotarting
+        uv += vec2(25. + sin(u_time*.1)) * float(layer); // ofsetting the UV by an arbitrary amount to make the layer appear different
+
+        // render
+        vec3 pass = render(uv * multiplier, scale, colour) * .2; // render the pass
+
+         // this is the opacity of the layer fading in from the "bottom"
+        opacity = 1. + scale;
+        float _opacity = opacity;
+
+        // pass += n * .5 * mix(vec3(0., .5, 1.5), vec3(1., .5, 0.), opacity);
+
+        // This is the opacity of the layer fading out at the top (we want this minimal, hence the smoothstep)
+        float endOpacity = smoothstep(0., 0.4, scale * -1.);
+        opacity += endOpacity;
+
+        return pass * _opacity * endOpacity;
+      }
+
+      void main() {
+          vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy);
+
+          if(u_resolution.y < u_resolution.x) {
+            uv /= u_resolution.y;
+          } else {
+            uv /= u_resolution.x;
+          }
+
+          // uv.y += cos(u_time * .1) * .5;
+          // uv.x += sin(u_time * .1) * .5;
+
+          // float n = fbm(uv * 3. - 2.);
+          float n = fbm((uv + vec2(sin(u_time*.1), u_time*.1)) * 2. - 2.);
+
+          vec3 colour = vec3(0.);
+          // colour = n * mix(vec3(0., .5, 1.5), vec3(1., .5, -.1), n);
+             float distance = length(uv - 0.5);
+    		float factor = smoothstep(0.0, 0.5, distance);
+    		colour = mix(vec3(1.0), vec3(135. / 255., 206. / 255., 250. / 255.), factor);
+          // colour -= n*n*n*n*.4;
+          // colour += smoothstep(.8, 2.5, sin(n*n*n*8.))*.4;
+
+          float opacity = 1.;
+          float opacity_sum = 1.;
+
+          for(int i = 1; i <= layers; i++) {
+            colour -= renderLayer(i, layers, uv, opacity, colour, n);
+            opacity_sum += opacity;
+          }
+
+          colour /= opacity_sum;
+
+          gl_FragColor = vec4(clamp(colour * 20., 0., 1.),1.0);
+      }
+    </script>
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header" class="alt">
+						<span class="logo"><img src="img/logo2.png" alt="logo" width="250" /></span>
+						<h1>Your Destination for Cutting-Edge Graphic Design, Development, and Digital Marketing Solutions</h1>
+						<p>Graphic Design, Development and Digital Marketing Agency</p>
+					</header>
+
+				<!-- Nav -->
+					<nav id="nav">
+						<ul>
+							<li><a href="index.html">Introduction</a></li>
+							<li><a href="index.html#first">Services</a></li>
+							<li><a href="about.html" class="active">About</a></li>
+							<li><a href="contact.html">Contact</a></li>
+						</ul>
+					</nav>
+
+					<!-- Background Video -->
+				    <!-- <video poster="img/video.png" id="bgvid" playsinline autoplay muted loop>
+				        <source src="video.mp4" type="video/mp4">
+				    </video> -->
+					<div class=" video poster">
+						<div id="container" touch-action="none"></div>
+					</div>
+				<!-- Main -->
+					<div id="main">
+
+						<!-- Introduction -->
+							<section class="main special">
+								<div class="spotlight">
+									<div class="content"><br><br>
+										<header class="major">
+											<h2>ABOUT</h2>
+											<p style="font-size:30px;">
+												We transform your ideas into captivating designs that reflect your brand's unique personality.<br>	
+												We understand that every business is different, and that's why we offer customized solutions to meet your specific needs. Whether you require a new logo, a responsive website, or a comprehensive digital marketing strategy, our team works closely with you to understand your goals and deliver results that exceed your expectations.
+										</p>
+										</header>
+									</div>
+								</div>
+							</section>
+
+						<!-- First Section -->
+							<section class="main special">
+								<header class="major">
+									<h2>BEYOND THE POSSIBLE</h2>
+									<p>
+										As an AI-driven agency, we leverage the latest advancements in technology to provide you with a competitive edge. From AI-powered design tools to data-driven marketing strategies, we harness the power of innovation to optimize your brand's performance in the digital realm.<br>
+										Your satisfaction is our top priority. We believe in building strong, long-lasting relationships with our clients by providing excellent customer service. Our dedicated team is always available to address your queries, offer guidance, and provide ongoing support, ensuring a seamless experience throughout our partnership.
+									</p>
+								</header>
+								<ul class="features">
+									<li>
+										<a href="">
+											<span class="icon major style1 fa-terminal"></span>
+											<h2>Porfolio</h2>
+										</a>
+									</li>
+									<li>
+										<a href="">
+											<span class="icon major style5 fa-cube"></span>
+											<h2>Our team</h2>
+										</a>
+									</li>
+									<li>
+										<a href="">
+											<span class="icon major style5 fa-cube"></span>
+											<h2>Join us</h2>
+										</a>
+									</li>
+								</ul>
+							</section>
+					</div>
+
+				<!-- Footer -->
+					<footer id="footer">
+						<section>
+							<h2>About</h2>
+							<p> We specialize in delivering innovative graphic design, development, and digital marketing services that elevate your business to new heights. <br>
+								With our expertise and forward-thinking approach, we empower you to stand out in the digital landscape while captivating your audience.</p>
+						</section>
+						<section>
+							<h2>Contact</h2>
+							<dl class="alt">
+								<dt>Phone</dt>
+								<dd>+237 658579635</dd>
+								<dd>+237 657009722</dd>
+								<dt>Email</dt>
+								<dd><a href="#!">info@AIALAB.com</a></dd>
+							</dl>
+							<ul class="icons">
+								<li><a href="#!" class="icon fa-twitter alt"><span class="label">Twitter</span></a></li>
+								<li><a href="https://www.facebook.com/aialabcm" class="icon fa-facebook alt"><span class="label">Facebook</span></a></li>
+								<li><a href="https://instagram.com/_AIALAB" class="icon fa-instagram alt"><span class="label">Instagram</span></a></li>
+								<li><a href="https://github.com/AIALAB" class="icon fa-github alt"><span class="label">GitHub</span></a></li>
+							</ul>
+						</section>
+						<p class="copyright">AIALAB &copy; Artificial Intelligence and Art Laboratory </p>
+					</footer>
+
+			</div>
+
+		<!-- Scripts -->
+
+			<script src="script.js"></script>
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/skel.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<!--[if lte IE 8]><script src="assets/js/ie/respond.min.js"></script><![endif]-->
+			<script src="assets/js/main.js"></script>
+
+	
+	<script type="module">
+		// Import the functions you need from the SDKs you need
+		import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+		import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-analytics.js";
+		// TODO: Add SDKs for Firebase products that you want to use
+		// https://firebase.google.com/docs/web/setup#available-libraries
+	  
+		// Your web app's Firebase configuration
+		// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+		const firebaseConfig = {
+		  apiKey: "AIzaSyBxviYNRsx6uCD9G2o72MLt06n9YlQhWiM",
+		  authDomain: "aia-lab-cm.firebaseapp.com",
+		  projectId: "aia-lab-cm",
+		  storageBucket: "aia-lab-cm.appspot.com",
+		  messagingSenderId: "224677949115",
+		  appId: "1:224677949115:web:c8bf29746db3207c82039e",
+		  measurementId: "G-BT2H5ENSDN"
+		};
+	  
+		// Initialize Firebase
+		const app = initializeApp(firebaseConfig);
+		const analytics = getAnalytics(app);
+	  </script>
+	</body>
+</html>

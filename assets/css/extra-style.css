@@ -1,0 +1,157 @@
+#lets {
+  height:500px;
+  background-color: #1a1a1a;
+  transition:1s;
+}
+#lets h1 {
+  font-size:150px;
+}
+
+#lets p {
+  font-size:50px;
+  display: none;
+}
+
+#lets:hover {
+  transition:1s;
+  background-color:#fff;
+  color:#1456da !important;
+}
+
+.container {
+  max-width:50%;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+@media screen and (max-width:768px) {
+	.container {
+		margin-top:-10%;
+		max-width:100%;
+	}
+  #lets h1 {
+  font-size:75px;
+}
+
+#lets p {
+  font-size:25px;
+}
+} 
+
+#contact {
+  background: #FFF;
+  border-color: #1456da;
+  padding: 25px;
+  margin: 150px 0;
+  box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2), 0 5px 5px 0 rgba(0, 0, 0, 0.24);
+}
+
+fieldset {
+  border: medium none !important;
+  border-color: #1456da;
+  margin: 0 0 10px;
+  min-width: 100%;
+  padding: 0;
+  width: 100%;
+}
+
+#contact input[type="text"],
+#contact input[type="email"],
+#contact input[type="tel"],
+#contact input[type="url"],
+#contact textarea {
+  width: 100%;
+  border: 1px solid #1456da;
+  background: #FFF;
+  margin: 0 0 5px;
+  padding: 10px;
+}
+
+#contact input[type="text"]:hover,
+#contact input[type="email"]:hover,
+#contact input[type="tel"]:hover,
+#contact input[type="url"]:hover,
+#contact textarea:hover {
+  -webkit-transition: border-color 0.3s ease-in-out;
+  -moz-transition: border-color 0.3s ease-in-out;
+  transition: border-color 0.3s ease-in-out;
+  border: 1px solid #99edfe;
+}
+
+#contact textarea {
+  height: 100px;
+  max-width: 100%;
+  resize: none;
+}
+
+#contact button[type="submit"] {
+  cursor: pointer;
+  align-items: center;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #000;
+  margin: 0 0 5px;
+  padding:5px;
+  font-size: 20px;
+  border-color: #1456da;
+}
+
+#contact button[type="submit"]:hover {
+  background: #eee;
+  -webkit-transition: background 0.3s ease-in-out;
+  -moz-transition: background 0.3s ease-in-out;
+  transition: background-color 0.3s ease-in-out;
+}
+
+#contact button[type="submit"]:active {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  background-color: #1456da;
+}
+
+.copyright {
+  text-align: center;
+}
+
+#contact input:focus,
+#contact textarea:focus {
+  outline: 0;
+  border: 1px solid #aaa;
+}
+
+::-webkit-input-placeholder {
+  color: #888;
+}
+
+:-moz-placeholder {
+  color: #888;
+}
+
+::-moz-placeholder {
+  color: #888;
+}
+
+:-ms-input-placeholder {
+  color: #888;
+}
+
+
+/* Reset */
+.video { 
+position: fixed;
+top: 50%;
+left: 50%;
+min-width: 100%;
+min-height: 100%;
+width: auto;
+height: auto;
+z-index: -100;
+transform: translateX(-50%) translateY(-50%);
+background-size: cover;
+transition: 1s opacity;
+}
+
+.stopfade { 
+   opacity: .5;
+}
